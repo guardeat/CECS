@@ -11,7 +11,7 @@ namespace CECS
 	class RigitAllocator: public std::allocator<T>
 	{
 	public:
-		size_t createSize()
+		size_t chunkSize()
 		{
 			size_t size{ ARRAY_BYTES / sizeof(T) };
 			if (size == 0) {

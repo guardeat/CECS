@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <tuple>
+#include <unordered_map>
 
 #include "Core.h"
 

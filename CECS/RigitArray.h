@@ -10,46 +10,47 @@
 
 namespace CECS
 {
+
 	template<typename T>
 	class RigitIterator
 	{
 	private:
 		using MultiArray = T**;
 
-		MultiArray arrays;
-		size_t arraySize;
-		size_t itemIndex;
+		MultiArray m_arrays;
+		size_t m_arraySize;
+		size_t m_itemIndex;
 
 	public:
 		RigitIterator(MultiArray arrays, size_t arraySize, size_t itemIndex)
-			:arrays{ arrays }, arraySize{ arraySize }, itemIndex{ itemIndex }
+			:m_arrays{ arrays }, m_arraySize{ arraySize }, m_itemIndex{ itemIndex }
 		{
 		}
 
 		T& operator*()
 		{
-			return arrays[itemIndex / arraySize][itemIndex % arraySize];
+			return m_arrays[m_itemIndex / m_arraySize][m_itemIndex % m_arraySize];
 		}
 
 		const T& operator*() const
 		{
-			return arrays[itemIndex / arraySize][itemIndex % arraySize];
+			return m_arrays[m_itemIndex / m_arraySize][m_itemIndex % m_arraySize];
 		}
 
 		RigitIterator& operator++()
 		{
-			++itemIndex;
+			++m_itemIndex;
 			return *this;
 		}
 
 		bool operator==(const RigitIterator& right) const
 		{
-			return itemIndex == right.itemIndex;
+			return m_itemIndex == right.m_itemIndex;
 		}
 
 		bool operator!=(const RigitIterator& right) const
 		{
-			return itemIndex != right.itemIndex;
+			return m_itemIndex != right.m_itemIndex;
 		}
 	};
 
@@ -60,13 +61,14 @@ namespace CECS
 		using Array = T*;
 		using ArrayContainer = std::vector<Array>;
 
-		ArrayContainer arrays;
-		Allocator allocator;
-		size_t arraySize;
-		size_t itemCount{};
+		ArrayContainer m_arrays;
+		Allocator m_allocator;
+		size_t m_arraySize;
+		size_t m_itemCount{};
 
 	public:
-		RigitArray() : arraySize{ allocator.createSize() }
+		RigitArray()
+			:m_arraySize{ m_allocator.chunkSize() }
 		{
 		}
 
@@ -75,12 +77,12 @@ namespace CECS
 		}
 
 		RigitArray(RigitArray&& rigitArray) noexcept :
-			arrays{ std::move(rigitArray.arrays) },
-			allocator{ std::move(rigitArray.allocator) },
-			arraySize{ rigitArray.arraySize },
-			itemCount{ rigitArray.itemCount }
+			m_arrays{ std::move(rigitArray.m_arrays) },
+			m_allocator{ std::move(rigitArray.m_allocator) },
+			m_arraySize{ rigitArray.m_arraySize },
+			m_itemCount{ rigitArray.m_itemCount }
 		{
-			rigitArray.itemCount = 0;
+			rigitArray.m_itemCount = 0;
 		}
 
 		RigitArray& operator=(const RigitArray& rigitArray)
@@ -93,11 +95,11 @@ namespace CECS
 		RigitArray& operator=(RigitArray&& rigitArray) noexcept
 		{
 			clear();
-			arrays = std::move(rigitArray.arrays);
-			allocator = std::move(rigitArray.allocator);
-			arraySize = rigitArray.arraySize;
-			itemCount = rigitArray.itemCount;
-			rigitArray.itemCount = 0;
+			m_arrays = std::move(rigitArray.m_arrays);
+			m_allocator = std::move(rigitArray.m_allocator);
+			m_arraySize = rigitArray.m_arraySize;
+			m_itemCount = rigitArray.m_itemCount;
+			rigitArray.m_itemCount = 0;
 			return *this;
 		}
 
@@ -113,26 +115,26 @@ namespace CECS
 
 		void pushBack(T&& item)
 		{
-			increaseCapacity(itemCount + 1);
-			constuct(itemCount, std::move(item));
-			++itemCount;
+			increaseCapacity(m_itemCount + 1);
+			constuct(m_itemCount, std::move(item));
+			++m_itemCount;
 		}
 
 		void popBack()
 		{
-			destroy(itemCount - 1);
-			--itemCount;
-			decreaseCapacity(itemCount);
+			destroy(m_itemCount - 1);
+			--m_itemCount;
+			decreaseCapacity(m_itemCount);
 		}
 
 		T& get(size_t index)
 		{
-			return arrays[index / arraySize][index % arraySize];
+			return m_arrays[index / m_arraySize][index % m_arraySize];
 		}
 
 		const T& get(size_t index) const
 		{
-			return arrays[index / arraySize][index % arraySize];
+			return m_arrays[index / m_arraySize][index % m_arraySize];
 		}
 
 		void set(size_t index, const T& item)
@@ -157,12 +159,12 @@ namespace CECS
 
 		T& back()
 		{
-			return get(itemCount - 1);
+			return get(m_itemCount - 1);
 		}
 
 		const T& back() const
 		{
-			return get(itemCount - 1);
+			return get(m_itemCount - 1);
 		}
 
 		void swap(size_t left, size_t right)
@@ -172,43 +174,43 @@ namespace CECS
 
 		void clear()
 		{
-			for (size_t index{}; index < itemCount; ++index)
+			for (size_t index{}; index < m_itemCount; ++index)
 			{
 				destroy(index);
 			}
 			decreaseCapacity(0);
-			itemCount = 0;
+			m_itemCount = 0;
 		}
 
 		size_t size() const
 		{
-			return itemCount;
+			return m_itemCount;
 		}
 
 		size_t capacity() const
 		{
-			return arraySize * arrays.size();
+			return m_arraySize * m_arrays.size();
 		}
 
 		bool empty() const
 		{
-			return !static_cast<bool>(itemCount);
+			return !static_cast<bool>(m_itemCount);
 		}
 
 		RigitIterator<T> begin()
 		{
-			return RigitIterator<T>{arrays.data(), arraySize, 0};
+			return RigitIterator<T>{m_arrays.data(), m_arraySize, 0};
 		}
 
 		RigitIterator<T> end()
 		{
-			return RigitIterator<T>{nullptr, 0, itemCount};
+			return RigitIterator<T>{nullptr, 0, m_itemCount};
 		}
 
 		RigitArray copy() const
 		{
 			RigitArray<T, Allocator> out;
-			for (size_t index{}; index < itemCount; ++index)
+			for (size_t index{}; index < m_itemCount; ++index)
 			{
 				out.pushBack(get(index));
 			}
@@ -218,19 +220,19 @@ namespace CECS
 	private:
 		void constuct(size_t index, T&& item)
 		{
-			std::allocator_traits<Allocator>::construct(allocator, &get(index), std::move(item));
+			std::allocator_traits<Allocator>::construct(m_allocator, &get(index), std::move(item));
 		}
 
 		void destroy(size_t index)
 		{
-			std::allocator_traits<Allocator>::destroy(allocator, &get(index));
+			std::allocator_traits<Allocator>::destroy(m_allocator, &get(index));
 		}
 
 		void increaseCapacity(size_t newCapacity)
 		{
 			while (newCapacity > capacity())
 			{
-				arrays.push_back(std::allocator_traits<Allocator>::allocate(allocator, arraySize));
+				m_arrays.push_back(std::allocator_traits<Allocator>::allocate(m_allocator, m_arraySize));
 			}
 		}
 
@@ -238,17 +240,18 @@ namespace CECS
 		{
 			if (newCapacity)
 			{
-				newCapacity += arraySize;
+				newCapacity += m_arraySize;
 			}
 
 			while (capacity() > newCapacity)
 			{
-				Array removal{ arrays.back() };
-				std::allocator_traits<Allocator>::deallocate(allocator, removal, arraySize);
-				arrays.pop_back();
+				Array removal{ m_arrays.back() };
+				std::allocator_traits<Allocator>::deallocate(m_allocator, removal, m_arraySize);
+				m_arrays.pop_back();
 			}
 		}
 	};
+
 }
 
 #endif
